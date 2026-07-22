@@ -1,5 +1,9 @@
 # T-MAC
 
+> **竞赛 fork（fandou-t-mac）**：面向「鸿蒙高校创新赛 · 方向四 · 操作系统智能创新」。  
+> Agent / 赛题 / 方案资产：[`AGENTS.md`](AGENTS.md) · [`CONTEXT.md`](CONTEXT.md) · [`docs/knowledge/`](docs/knowledge/)；任务跟踪用 GitHub Issues。  
+> 以下为上游 T-MAC 项目正文（配图仍使用仓库根目录 `assets/*.png`）。
+
 <h3 align="center">
     <img src="assets/demo.gif">
     <p><a href=https://huggingface.co/1bitLLM/bitnet_b1_58-3B>BitNet</a> on M2-Ultra with T-MAC (LUT-based) vs llama.cpp (dequantization-based)</p>

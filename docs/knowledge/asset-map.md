@@ -34,7 +34,7 @@ flowchart TB
 | `docs/android.md` 等 | 上游技术文档 | **否** |
 | `docs/agents/` | Agent 工作流与口径 | 仅规范文档 |
 | `docs/knowledge/` | 赛题/方案/仓库知识 | 从临时对话归类至此 |
-| `docs/knowledge/inspiration-sources.md` | Repos + Blogs 灵感总册 | 规划优先吸收源 |
+| `docs/knowledge/team.md` | 参赛队伍（公开信息，无手机号） | |
 | `docs/glossary/` | 扩展术语 | — |
 | `docs/adr/` | 架构决策 | — |
 | `docs/output/report/` | 调研成稿（扁平，无 theme 子目录） | — |

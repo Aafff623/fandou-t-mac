@@ -1,8 +1,128 @@
-# T-MAC
+# LUT-SA · 鸿蒙高校创新赛
 
-> **竞赛 fork（fandou-t-mac）**：面向「鸿蒙高校创新赛 · 方向四 · 操作系统智能创新」。  
-> Agent / 赛题 / 方案资产：[`AGENTS.md`](AGENTS.md) · [`CONTEXT.md`](CONTEXT.md) · [`docs/knowledge/`](docs/knowledge/)；任务跟踪用 GitHub Issues。  
-> 以下为上游 T-MAC 项目正文（配图仍使用仓库根目录 `assets/*.png`）。
+> **竞赛 fork（fandou-t-mac）**：本仓库基于 [microsoft/T-MAC](https://github.com/microsoft/T-MAC)（EuroSys 2025）二开，把比特级查找表（LUT）驱动的低比特 LLM 推理封装为 **OpenHarmony / HarmonyOS 用户态 SystemAbility** 加速服务，参赛「鸿蒙高校创新赛 · 方向四 · 操作系统智能创新」。  
+> 作品技术名 **LUT-SA**，队伍 **翻斗花园（中北大学）**。
+
+<p align="center">
+  <img src="assets/poster/poster-phase1.png" width="85%" alt="LUT-SA 系统海报" />
+</p>
+
+## 一句话创意
+
+把比特级查找表（LUT）驱动的低比特 LLM 推理范式封装为 OpenHarmony / HarmonyOS 用户态系统能力，用轻量行为感知做动态资源调度，把首字延迟和能耗在端侧压下去。
+
+## 系统架构
+
+四层垂直单向依赖：L1 应用层 → L2 感知与调度 → L3 系统服务层（用户态 SystemAbility）→ L4 计算核心（T-MAC 二开 LUT Kernel）。右侧并列「对照与验证」，与 llama.cpp 反量化基线对照。
+
+<p align="center">
+  <img src="assets/images/readme/architecture-phase1.png" width="85%" alt="LUT-SA 系统架构图" />
+</p>
+
+> 源文件：`assets/images/readme/architecture-phase1.drawio` · 设计说明：`assets/images/readme/architecture-phase1.md`
+
+## 调用时序
+
+五条 lifeline：Demo App → SAMgr → LUT SA → Native Lib → LUT Kernel。一次完整 Generate 走 1 到 5 步：CreateSession → InitBuffers / LoadLUT → Generate → InferTokenBatch → mpGEMM / LUT lookup。右侧 TTFT 标尺覆盖 CreateSession 完成 → 首 token 返回。
+
+<p align="center">
+  <img src="assets/images/readme/sequence-phase1.png" width="85%" alt="LUT-SA 调用时序图" />
+</p>
+
+> 源文件：`assets/images/readme/sequence-phase1.drawio` · 设计说明：`assets/images/readme/sequence-phase1.md`
+
+## 公开性能基线
+
+数据出处：上游 T-MAC `docs/profiling_data.md`。单位 tokens / sec。
+
+| 模型 | 设备 | 线程 | llama.cpp | T-MAC | 约倍速 |
+|---|---|---|---|---|---|
+| BitNet-3B | M2-Ultra | 1 | 6.49 | 22.08 | ~3.4× |
+| BitNet-3B | M2-Ultra | 4 | 22.09 | 54.46 | ~2.5× |
+| BitNet-3B | Raspberry Pi 5 | 1 | 1.37 | 8.03 | ~5.9× |
+| BitNet-3B | Raspberry Pi 5 | 2 | 2.71 | 11.09 | ~4.1× |
+| Llama-2-7B (W2) | M2-Ultra | 1 | 3.82 | 16.68 | ~4.4× |
+| Llama-2-7B (W2) | AGX Orin | 1 | 0.79 | 4.36 | ~5.5× |
+
+> 上游公开数据，非本队板测。复赛阶段在 OpenHarmony 模拟器或 ARM 设备完成复现与补充实测。
+
+## 移植到 OpenHarmony / HarmonyOS 的路线
+
+| 步骤 | 内容 | 阶段 |
+|---|---|---|
+| 1 | 抽取 LUT Kernel 为 Native 静态 / 动态库，参考 Android 交叉编译经验 | 复赛前期 |
+| 2 | DevEco 创建 Native 模块，打通最小推理调用 | 复赛前期 |
+| 3 | 封装 SystemAbility，暴露 Load / Infer / Metrics | 复赛中期 |
+| 4 | 叠加轻量感知调度；与 llama.cpp 或官方量化路径对照 | 复赛中后期 |
+| 5 | 固化本平台 TTFT、tokens / s、（可选）功耗数据 | 复赛提交前 |
+
+## 作品介绍
+
+低比特大模型在边缘设备落地时，主流路径仍以反量化后高精度乘加实现，反量化访存与转换开销显著抵消低比特收益；多任务并发场景下，首字延迟（TTFT）与能耗指标进一步劣化。赛题要求在现有操作系统架构下提升系统 AI 任务运行效率，纯应用层 Demo 难以承载「系统级创新」这一命题。
+
+作品 LUT-SA 以开源 T-MAC（EuroSys 2025）比特级查找表范式为计算引擎，将低比特混合精度矩阵乘转换为查表与加法运算，消除反量化乘加路径。计算内核经 NDK 封装后，以用户态 SystemAbility 注册到 OpenHarmony / HarmonyOS 系统服务框架，对外统一暴露模型加载、推理与指标回传三类能力。调度侧联动系统通知、前台状态与负载信号，动态调整 AI 任务优先级与预取策略，形成「感知 → 调度 → 加速」闭环。系统路径全程运行于用户态，不依赖未公开的内核接口。
+
+工程实现分三层：计算层适配 T-MAC LUT Kernel 至 ARM 架构，处理访存模式与 LUT 表布局；服务层按 SAMgr 注册 LUT SystemAbility，对外暴露统一加速接口，应用按需获取 proxy；策略层将行为信号映射为优先级、预取与节流策略，可在演示场景中直观呈现。
+
+公开评测数据表明，相对 llama.cpp 反量化基线，T-MAC 在多种边缘 CPU 上吞吐具备稳定优势。BitNet-3B 在 M2-Ultra 单核 22.08 对 6.49 tokens/s，树莓派 5 单核 8.03 对 1.37 tokens/s。本作品以此为性能基线，并规划在 OpenHarmony 模拟器或 ARM 设备上完成复现与实测补充。复赛阶段可进一步叠加官方 NPU / CANN 量化路径作对照，强化「异构调度」的论证链。
+
+作品意义在于将 LUT 计算范式产品化为系统级服务，降低端侧大模型部署门槛，为隐私本地推理、低功耗生成等场景提供基础支撑。
+
+## 测试报告
+
+**目的**：验证比特级查找表（LUT）相对反量化基线在边缘 CPU 上的吞吐优势，并说明将该能力封装为 OpenHarmony / HarmonyOS 用户态系统服务后的复现与移植路径，支撑作品「系统级 AI 任务效率提升」主张。
+
+**指标**：
+
+| 指标 | 含义 |
+|---|---|
+| tokens / s | 生成吞吐 |
+| NUM_THREADS | 参与计算的 CPU 线程数 |
+| TTFT | 首字延迟（复赛补测） |
+| 能耗 / 功耗 | 复赛在可测平台补采 |
+
+**复现步骤**：
+
+1. 克隆本仓或上游 T-MAC，按 README 与 `docs/e2e.md` 准备依赖。
+2. 按文档转换或获取对应低比特模型。
+3. 运行官方或本仓 benchmark，记录 tokens / s 与线程配置。
+4. 同配置运行 llama.cpp 基线并制表。
+
+**风险与边界**：
+
+| 风险 | 说明 |
+|---|---|
+| 初赛数据非本队设备实测 | 已明确标注来源，不将公开数据表述为「本队板测」 |
+| ISA / 内存布局差异 | ARM 鸿蒙设备需适配；优先用户态库，避免未公开内核 API |
+| 权限边界 | SystemAbility 能力级别以可申请 / 可演示为准 |
+
+> 全文：[`docs/output/report/phase1-test-report.md`](docs/output/report/phase1-test-report.md)
+
+## 团队
+
+| 项 | 内容 |
+|---|---|
+| 团队名称 | 翻斗花园 |
+| 所属机构 | 中北大学 |
+| 参赛赛道 | 模型与算子赛道 |
+| 队长 | 聂君奋 |
+| 队员 | 范腾达、郑李惠杰 |
+| 报名时间 | 2026-07-17 |
+
+## 仓库内指针
+
+| 维度 | 入口 |
+|---|---|
+| 项目一句话 / 边界 | [`AGENTS.md`](AGENTS.md) · [`CONTEXT.md`](CONTEXT.md) |
+| 赛题与方案 | [`docs/knowledge/competition-brief.md`](docs/knowledge/competition-brief.md) · [`docs/knowledge/solution-blueprint.md`](docs/knowledge/solution-blueprint.md) |
+| 决策记录 | [`docs/adr/0001-lut-systemability-path.md`](docs/adr/0001-lut-systemability-path.md) |
+| 调研与初赛材料 | [`docs/output/report/`](docs/output/report/) |
+| 任务跟踪 | GitHub Issues（`Aafff623/fandou-t-mac`） |
+
+## 上游 T-MAC 原文
+
+<details>
+<summary>点击展开上游 T-MAC 项目正文</summary>
 
 <h3 align="center">
     <img src="assets/demo.gif">
@@ -14,309 +134,50 @@
     <p>BitNet and Phi-3.5 tokens/s with # of CPU cores on Surface Laptop 7</p>
 </h3>
 
-## News
+### What T-MAC does
 
-- 05/28/2025 🚀🚀: The idea of T-MAC extends its capabilities to NPU! For more information, check out the [t-man README](t-man/README.md) and try BitNet/Qwen3/Llama3 with the demo app!
+A lookup-table based kernel library for mixed-precision matrix multiplication on CPU. It replaces dequantize-then-multiply with table lookup and shift-add, so 1/2/4-bit weight × int8/fp16/fp32 activation runs natively without re-casting. Supports BitNet 1.58-bit, BitDistiller/EfficientQAT W2A16, and GPTQ/gguf W4A16 on Apple Silicon, x86, and ARM (Windows / Linux / macOS).
 
-- 10/21/2024 🎉🎉: [BitNet](https://github.com/microsoft/BitNet), powered by T-MAC, is open-sourced.
-
-- 10/10/2024 🚀🚀: By updating and rebasing our llama.cpp version, T-MAC now support more models (e.g., qwen2) and the end-to-end performance is further improved by 10~15%! Try qwen2 using [the Official GPTQ model](https://huggingface.co/Qwen/Qwen2-7B-Instruct-GPTQ-Int4).
-
-- 08/21/2024 🎉🎉: T-MAC paper is accepted by EuroSys 2025.
-
-- 08/17/2024 🚀: T-MAC now supports 1/2/4-bit quantized models of (almost) any architecture in GPTQ format.
-
-- 08/14/2024 🚀: The T-MAC GEMM (N>1) kernels are now integrated into llama.cpp to accelerate prefill. Check [Prefill speedup](#prefill-speedup) for speedup.
-
-- 07/27/2024 ✨: We've noted that T-MAC is even faster than the NPU in token generation speed on the latest Snapdragon X Elite chipset! Check [Compared to NPU](#compared-to-npu) for more details.
-
-## Introduction
-
-T-MAC is a kernel library to directly support mixed-precision matrix multiplication (int1/2/3/4 x int8/fp16/fp32) without the need for dequantization by utilizing lookup tables. T-MAC aims to boost low-bit LLM inference on CPUs. T-MAC already offers support for various low-bit models, including W4A16 from GPTQ/gguf, W2A16 from [BitDistiller](https://github.com/DD-DuDa/BitDistiller)/[EfficientQAT](https://github.com/OpenGVLab/EfficientQAT) and W1(.58)A8 from [BitNet](https://huggingface.co/1bitLLM/bitnet_b1_58-3B) on OSX/Linux/Windows equipped with ARM/Intel CPUs.
-
-T-MAC achieves a token generation throughput of 20 tokens/sec with a single core and 48 tokens/sec with four cores on Surface Laptop 7 for 3B BitNet, which is a 4~5x speedup compared to SOTA CPU low-bit framework ([llama.cpp](https://github.com/ggerganov/llama.cpp)). T-MAC can even reach 11 tokens/sec on lower-end devices like Raspberry Pi 5.
-
-## End-2-End Speedup
-
-> All of the following data is profiled based on llama.cpp b2794 (May 2024). The latest T-MAC and baseline, after updating the llama.cpp version, is further optimized by 10~15%.
-
-We evaluate the token generation performance of different models on five different devices: Surface Laptop 7, Apple M2-Ultra, Jetson AGX Orin, Raspberry Pi 5 and Surface Book 3. Check [datasheet](docs/profiling_data.md) for more details.
-
-> We evaluate BitNet-3B and Llama-2-7B (W2) with T-MAC 2-bit and llama.cpp Q2_K, and evaluate Llama-2-7B (W4) with T-MAC 4-bit and llama.cpp Q4_0.
-
-In addition to providing a significant speedup, T-MAC can also match the same performance using fewer CPU cores. For instance, to reach 40 tokens/sec, a throughput that greatly surpasses human reading speed, T-MAC only requires 2 cores, while llama.cpp requires 8 cores. On Jetson AGX Orin, to achieve 10 tokens/sec, a throughput that already meets human reading speed, T-MAC only requires 2 cores, while llama.cpp uses all 12 cores. T-MAC can meet real-time requirements on less powerful devices equipped with fewer CPU cores like Raspberry Pi 5. By using fewer cores, T-MAC can reserve computational resources for other applications and significantly reduce power and energy consumption, both of which are crucial for edge devices.
+On Surface Laptop 7, 3B BitNet hits 20 tokens/s on a single core and 48 tokens/s on four cores (4~5x llama.cpp). Raspberry Pi 5 still manages 11 tokens/s.
 
 <h3 align="center">
     <img src="assets/e2e_threads.png">
-    <p>T-MAC achieves significant speedup at single-threads and consumes much less CPU cores to reach the same throughput</p>
+    <p>T-MAC vs llama.cpp, threads vs tokens/s</p>
 </h3>
 
-> The throughputs of T-MAC are obtained without fast-aggregation. Users can toggle on fast-aggregation through `-fa` to achieve an additional speedup of 10%~20% with.
+[Full profile data](docs/profiling_data.md) covers Surface Laptop 7, M2-Ultra, Jetson AGX Orin, Raspberry Pi 5, Surface Book 3.
 
-The figure above shows that when the model size is increased to 7B-4bit, the multi-threading throughput of llama.cpp on Surface Laptop 7 becomes highly unstable due to the thermal threshold under *Better Performance* mode. This instability is not observed with T-MAC, as LUT is more energy-efficient compared to multiply-add operations. To establish a more solid baseline, we re-profile the performance under the *Best Performance* mode:
+### Heterogeneous baselines
 
-<h3 align="center">
-    <img src="assets/e2e_threads_surface_max.png">
-    <p>The throughput of T-MAC and llama.cpp both increase by maximizing CPU frequency</p>
-</h3>
+Same Llama-2-7B (W2) on Jetson AGX Orin (NUM_THREADS=12 for CPU):
 
-> However, under real-world situations, CPUs can't maintain maximum frequency consistently on edge devices. The performance of llama.cpp will degrade as indicated by the results under the *Better Performance* mode.
+| Framework | Throughput (tok/s) | Power (W) | Energy (J/tok) |
+|-----------|:-------------------|:----------|:---------------|
+| llama.cpp (CPU) | 7.08 | 15.0 | 2.12 |
+| llama.cpp (GPU) | 20.03 | 30.8 | 1.54 |
+| T-MAC (CPU) | 15.62 | 10.4 | 0.66 |
 
-### Prefill Speedup
+Snapdragon X Elite (Llama-2-7B-W4, 1024-in / 1024-out): T-MAC CPU 12.6 tok/s @ 2 cores, 18.7 @ 4 cores, 22 @ max frequency. NPE NPU baseline: 10.4 tok/s.
 
-> TODO: add more results
+### Install & run
 
-We have compared the prefill throughput (input_len=256) for Llama-2-7b (W2) on Surface Laptop 7 with two baselines:
-
-- llama.cpp: llama.cpp optimized dequant-based low-bit kernels
-- llama.cpp (OpenBLAS): llama.cpp OpenBLAS backend
-
-| Model           | NUM_THREADS | Batch Size | T-MAC (tokens/sec)      | llama.cpp (OpenBLAS) | llama.cpp |
-|-----------------|-------------|------------|:------------------------|:---------------------|:----------|
-| llama-2-7b (W2) |      4      |    256     |         50.1            |        21.5          |   12.0    |
-| llama-2-7b (W2) |      8      |    256     |         94.4            |        37.7          |   21.3    |
-
-## Kernel-level Speedup
-
-Our GEMM kernels demonstrate superior performance over SOTA low-bit GEMM on CPU. The following figure shows the speedup compared to llama.cpp for llama-7b kernels during token generation (NUM_THREADS=1):
-
-![](assets/gemv_t1.png)
-
-> llama.cpp doesn't provide 1-bit kernel implementation, but we can deduce it from the 2-bit, as it won't bring additional speedup according to the 2/3/4-bit results.
->
-> Surface stands for Surface Book 3 in this section.
-
-T-MAC can achieve significant speedup for multi-batch (N>1) GEMM due to reduced computaional cost, which ensures superior performance on prompt evaluation and multi-batch token generation. The following figures shows the speedup compared to llama.cpp using OpenBLAS backend (NUM_THREADS=1):
-
-![](assets/gemm.png)
-
-> M2-Ultra is an exception as it is equipped with a specially designed [AMX coprocessor](https://github.com/corsix/amx) to accelerate multi-batch GEMM. However, T-MAC can still achieve comparable performance at 2-bit.
-
-## Energy and Power Saving
-
-By replacing heavy fused-multiply-add instructions with table lookup instructions, T-MAC significantly reduces power consumption. Combined with the speedup, T-MAC ultimately results in a substantial decrease in total energy consumption.
-
-<p align="center">
-    <img src="assets/e2e_power.png">
-    <p align="center">Multi-threading power/energy consumption on M2-Ultra for three models, M1: Llama-2-7B (W4), M2: Llama-2-7B (W2) and M3: BitNet-3B</p>
-</p>
-
-> Data sampled with [powermetrics](https://www.unix.com/man-page/osx/1/powermetrics/).
-
-### Compared to NPU
-
-On the latest Snapdragon X Elite chipset, CPU through T-MAC achieves better performance compared to NPU through Qualcomm Snapdragon Neural Processing Engine (NPE).
-
-When deploying the llama-2-7b-4bit model on it, the NPU can only generate 10.4 tokens/sec (according to the data released [here](https://aihub.qualcomm.com/models/llama_v2_7b_chat_quantized)), while the CPU using T-MAC can reach 12.6 tokens/sec with two cores, and even up to 22 tokens/sec. Considering that T-MAC's computing performance can linearly improve with the number of bits decreases (which is not observable on GPUs and NPUs based on dequantization), T-MAC can even match the NPU with a single-core CPU at 2 bits.
-
-| Framework       | Model           | NUM_THREADS | Throughput (tokens/sec) |
-|-----------------|-----------------|-------------|:------------------------|
-| T-MAC (CPU)     | llama-2-7b (W4) |      2      |         <b>12.6</b>     |
-| T-MAC (CPU)     | llama-2-7b (W4) |      4      |         <b>18.7</b>     |
-| T-MAC (CPU)     | llama-2-7b (W2) |      1      |          9.3            |
-| T-MAC (CPU)     | llama-2-7b (W2) |      4      |         <b>28.4</b>     |
-|                 |                 |             |                         |
-| NPE (NPU)       | llama-2-7b (W4) |      -      |          10.4           |
-
-> For fair comparison, we have aligned our settings with those of the NPU, including a input length of 1024 and an output length of 1024. Although Qualcomms deploy a model of 3.6GB, we deploy a slightly larger model of 3.7GB, due to our token-embed remaining un-quantized.
->
-> By maximizing CPU frequency, T-MAC (CPU) can even get better results. Refer to the discussion in [End-2-End speedup](#end-2-end-speedup).
-
-### Compared to CUDA GPU
-
-T-MAC achieves comparable 2-bit mpGEMM performance compared to CUDA GPU on Jetson AGX Orin. While the CUDA GPU outperforms the CPU in executing kernels other than mpGEMM, making the end-to-end performance of T-MAC (CPU) slightly slower, T-MAC can deliver considerable savings in power and energy consumption.
-
-| Framework       | Throughput (tokens/sec) | Power (W)   | Energy (J/token) |
-|-----------------|:------------------------|:------------|:-----------------|
-| llama.cpp (CPU) |         7.08            |     15.0    | 2.12             |
-| llama.cpp (GPU) |        <b>20.03</b>     |     30.8    | 1.54             |
-| T-MAC (CPU)     |         15.62           | <b>10.4</b> | <b>0.66</b>      |
-
-<p align="center">
-<b>Throughput/power/energy comparison for Llama-2-7B (W2) on NVIDIA Jetson AGX Orin (NUM_THREADS=12 for CPU)</b>
-</p>
-
-> Data sampled with [jetson-stats](https://github.com/rbonghi/jetson_stats) under power mode MAXN.
-
-## Installation
-
-### Requirements
-
-- Python (3.8 required for TVM)
-- virtualenv
-- cmake>=3.22
-
-<details>
-<summary><h3>OSX (Apple Silicon)</h3></summary>
-
-First, install `cmake`, `zstd` (dependency of llvm) and `libomp` (dependency of tvm). Homebrew is recommended:
+Requirements: Python 3.8 (TVM), virtualenv, cmake ≥ 3.22.
 
 ```bash
-brew install cmake zstd libomp
-```
-
-> If `zstd` is installed through homebrew, than `cmake` should also be installed through homebrew to ensure that `zstd` can be found by `cmake`.
-
-Install `t_mac` from the source (please run in a `virtualenv`):
-
-```bash
-git clone --recursive https://github.com/microsoft/T-MAC.git
-# in virtualenv
-pip install -e . -v
-source build/t-mac-envs.sh
-```
-
-The command will download clang+llvm and build tvm from source. So it might take a bit of time.
-
-</details>
-<details>
-<summary><h3>Ubuntu (aarch64/x86_64)</h3></summary>
-
-Install cmake>=3.22 from [Official Page](https://cmake.org/download/).
-
-Then install TVM build dependencies:
-
-```bash
-sudo apt install build-essential libtinfo-dev zlib1g-dev libzstd-dev libxml2-dev
-```
-
-Install `t_mac` from the source (please run in a `virtualenv`):
-
-```bash
-git clone --recursive https://github.com/microsoft/T-MAC.git
-# in virtualenv
-pip install -e . -v
-source build/t-mac-envs.sh
-```
-
-The command will download clang+llvm and build tvm from source. So it might take a bit of time.
-
-> **Note**: We have noticed many users attempting to evaluate T-MAC on old-gen x86 platforms. However, x86 CPUs vary dramatically, and due to unawareness of AI workloads, most of these platforms have extremely low memory bandwidth (even lower than Raspberry Pi 5). Our current tests do not encompass all x86 platforms, particularly older generations. As a result, we cannot guarantee significant speedup (especially for 4-bit token generation) on all x86 platforms. We recommend Surface Book 3 or ARM devices to evaluate T-MAC.
-
-</details>
-<details>
-<summary><h3>Windows (x86_64)</h3></summary>
-
-Due to lack of stable clang+llvm prebuilt on Windows, Conda + Visual Studio is recommended to install dependencies.
-
-First, install Visual Studio 2022(/2019) and toggle on `Desk development with C++`. DO NOT toggle on `C++ Clang tools for Windows` because the Clang version is probably not compatible. And then install Clang-17.0.6 from [LLVM official release](https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.6/LLVM-17.0.6-win64.exe).
-
-> Remember adding the installed directory `/path/to/LLVM/bin/` into your computer's environment variable `PATH`.
-
-Then, create conda environment within `Developer PowerShell for VS 20XX`.
-
-```powershell
 git clone --recursive https://github.com/microsoft/T-MAC.git
 cd T-MAC
-conda env create --file conda\tvm-build-environment.yaml
-conda activate tvm-build
-```
-
-After that, build TVM with:
-
-```powershell
-cd 3rdparty\tvm
-mkdir build
-cp cmake\config.cmake build
-```
-
-Append `set(USE_LLVM llvm-config)` to `build\config.cmake`.
-
-```powershell
-cd build
-cmake .. -A x64
-cmake --build . --config Release -- /m
-```
-
-> If you encounter errors like `string sub-command regex, mode replace: regex "$" matched an empty string.` during running `cmake .. -A x64` while building TVM, don't worry, and just run `cmake .. -A x64` again. Check [this issue of LLVM](https://github.com/llvm/llvm-project/issues/83802) for more details.
-
-Install `t_mac` from the source:
-
-```powershell
-cd ..\..\..\  # back to project root directory
-$env:MANUAL_BUILD = "1"
-$env:PYTHONPATH = "$pwd\3rdparty\tvm\python"
+python -m venv .venv && source .venv/bin/activate    # PowerShell: .venv\Scripts\Activate.ps1
 pip install -e . -v
+source build/t-mac-envs.sh                            # downloads clang+llvm, builds TVM
 ```
 
-</details>
-<details>
-<summary><h3>Windows (ARM64)</h3></summary>
+Full platform-specific steps (OSX / Ubuntu / Windows x64 / Windows ARM64 / Android cross-compile) live in their original upstream README sections. Verify with:
 
-> The following process could be more complicated. However, if your deployment scenerio doesn't require a native build, you can use WSL/docker and follow the Ubuntu guide.
-
-First, install Visual Studio 2022(/2019) and toggle on `Desk development with C++`. DO NOT toggle on `C++ Clang tools for Windows` because the Clang version is probably not compatible. And then install Clang-17.0.6 from [LLVM official release](https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.6/LLVM-17.0.6-win64.exe).
-
-> Remember adding the installed directory `/path/to/LLVM/bin/` into your computer's environment variable `PATH`.
-
-Then, create conda environment within `Developer PowerShell for VS 20XX`.
-
-```powershell
-git clone --recursive https://github.com/microsoft/T-MAC.git
-cd T-MAC
-conda env create --file conda\tvm-build-environment.yaml
-conda activate tvm-build
+```bash
+python -c "import t_mac; print(t_mac.__version__); from tvm.contrib.clang import find_clang; print(find_clang())"
 ```
 
-After that, build TVM with:
-
-```powershell
-cd 3rdparty\tvm
-mkdir build
-cp cmake\config.cmake build
-```
-
-Append `set(USE_LLVM llvm-config)` to `build\config.cmake`.
-
-```powershell
-cd build
-cmake .. -A x64  # Build TVM in x64, as Python and dependencies are x64
-cmake --build . --config Release -- /m
-```
-
-> If you encounter errors like `string sub-command regex, mode replace: regex "$" matched an empty string.` during running `cmake .. -A x64` while building TVM, don't worry, and just run `cmake .. -A x64` again. Check [this issue of LLVM](https://github.com/llvm/llvm-project/issues/83802) for more details.
-
-As clang tools in Visual Studio are in fact emulated x64 tools, please install the native arm64 tools manually.
-
-- Install CMake from [Official Windows ARM installer](https://github.com/Kitware/CMake/releases/download/v3.30.1/cmake-3.30.1-windows-arm64.msi).
-- Download Ninja from [Release Page](https://github.com/ninja-build/ninja/releases/download/v1.12.1/ninja-winarm64.zip) and add to Path.
-- Install Clang from [Release Page](https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.6/LLVM-17.0.6-woa64.exe).
-
-Run the following commands **outside of Developer Command Prompt/Powershell for VS** to ensure our native clang tools are used.
-
-Install `t_mac` from the source:
-
-```powershell
-conda activate tvm-build
-conda uninstall cmake  # To prevent potential conflict with the native ARM64 cmake
-cd ..\..\..\  # back to project root directory
-$env:MANUAL_BUILD = "1"
-$env:PYTHONPATH = "$pwd\3rdparty\tvm\python"
-pip install wmi  # To detect the native ARM64 CPU within x86_64 python
-pip install -e . -v
-```
-
-</details>
-
-</details>
-<details>
-<summary><h3>Android</h3></summary>
-
-First, follow the normal workflow to install T-MAC on your PC (OSX/Ubuntu recommended).
-
-Then, refer to [Android Cross Compilation Guidance](docs/android.md).
-
-</details>
-
-### Verification
-
-After that, you can verify the installation through: `python -c "import t_mac; print(t_mac.__version__); from tvm.contrib.clang import find_clang; print(find_clang())"`.
-
-## Usage
-
-Currently, we supports end-to-end inference through llama.cpp integration.
-
-We have provided an **all-in-one script**. Invoke it with:
+End-to-end inference via llama.cpp integration:
 
 ```bash
 pip install 3rdparty/llama.cpp/gguf-py
@@ -324,80 +185,22 @@ huggingface-cli download 1bitLLM/bitnet_b1_58-3B --local-dir ${model_dir}
 python tools/run_pipeline.py -o ${model_dir} -q int_n
 ```
 
-We have also supported models in GTPQ format from [GPTQModel](https://github.com/ModelCloud/GPTQModel)/[EfficientQAT](https://github.com/OpenGVLab/EfficientQAT). Try it out with officially released EfficientQAT (of GPTQ format) [Llama-3-8b-instruct-w2-g128](https://huggingface.co/ChenMnZ/Llama-3-8b-instruct-EfficientQAT-w2g128-GPTQ):
+GPTQ models use `-m gptq-auto` or a preset name; benchmark with `3rdparty/llama.cpp/build/bin/llama-bench` or `tools/bench_e2e.py`.
 
-```bash
-huggingface-cli download ChenMnZ/Llama-3-8b-instruct-EfficientQAT-w2g128-GPTQ --local-dir ${model_dir}
-python tools/run_pipeline.py -o ${model_dir} -m llama-3-8b-2bit -q int_n
-```
+NPU extension: see [t-man/README.md](t-man/README.md). Upcoming features: [v1.0.0 plan](https://github.com/microsoft/T-MAC/issues/45).
 
-> - Use `-p` or `-s` argument to select the steps you want to run.
->
-> - Use `-u` argument to use our prebuilt kernels for ARM.
->
-> - Use `-m gptq-auto` for GPTQ models not in preset. The kernel shapes and quantization configurations will be automatically detected and validated.
->
-> - We have supported mainstream LLM models in GPTQ format (e.g., Llama-2, Llama-3, Mistral, Phi-3-mini, etc). Some models are unsupported by [convert script](https://github.com/kaleid-liner/llama.cpp/blob/185d96ce5087b117d6b3a48bc99f158e9daec58d/convert-hf-to-gguf-t-mac.py). We welcome contributions from community.
+### Cite
 
-An example output:
-
-```
-Running STEP.0: Compile kernels
-  Running command in /Users/user/jianyu/T-MAC/deploy:
-    python compile.py -o tuned -da -nt 4 -tb -gc -gs 128 -ags 64 -t -m hf-bitnet-3b -r
-Running STEP.1: Build T-MAC C++ CMakeFiles
-  Running command in /Users/user/jianyu/T-MAC/build:
-    cmake -DCMAKE_INSTALL_PREFIX=/Users/user/jianyu/T-MAC/install ..
-Running STEP.2: Install T-MAC C++
-  Running command in /Users/user/jianyu/T-MAC/build:
-    cmake --build . --target install --config Release
-Running STEP.3: Convert HF to GGUF
-  Running command in /Users/user/jianyu/T-MAC/3rdparty/llama.cpp:
-    python convert-hf-to-gguf.py /Users/user/Downloads/test_models/hf-bitnet-3B --outtype i2 --outfile /Users/user/Downloads/test_models/hf-bitnet-3B/ggml-model.i2.gguf --kcfg /Users/user/jianyu/T-MAC/install/lib/kcfg.ini --enable-t-mac
-Running STEP.4: Build llama.cpp CMakeFiles
-  Running command in /Users/user/jianyu/T-MAC/3rdparty/llama.cpp/build:
-    cmake .. -DLLAMA_TMAC=ON -DCMAKE_PREFIX_PATH=/Users/user/jianyu/T-MAC/install/lib/cmake/t-mac -DCMAKE_BUILD_TYPE=Release -DLLAMA_LLAMAFILE_DEFAULT=OFF -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
-Running STEP.5: Build llama.cpp
-  Running command in /Users/user/jianyu/T-MAC/3rdparty/llama.cpp/build:
-    cmake --build . --target main --config Release
-Running STEP.6: Run inference
-  Running command in /Users/user/jianyu/T-MAC/3rdparty/llama.cpp/build:
-    /Users/user/jianyu/T-MAC/3rdparty/llama.cpp/build/bin/main -m /Users/user/Downloads/test_models/hf-bitnet-3B/ggml-model.i2.gguf -n 128 -t 4 -p Microsoft Corporation is an American multinational corporation and technology company headquartered in Redmond, Washington. -b 1 -ngl 0 -c 2048
-Check logs/2024-07-15-17-10-11.log for inference output
-```
-
-Please note that main is used here do demo token generation output. Use `3rdparty/llama.cpp/build/bin/llama-bench` to benchmark performance. A benchmark script is also provided at `tools/bench_e2e.py`.
-
-## Upcoming Features
-
-Check [T-MAC v1.0.0 release plan](https://github.com/microsoft/T-MAC/issues/45) for upcoming features.
-
-## Techniques
-
-LLM inference incurs significant computational cost. Low-bit quantization, a widely adopted technique, introduces the challenge of mixed-precision GEMM (mpGEMM), which is not directly supported by hardware and requires convert/dequant operations.
-
-We propose the use of a lookup table (LUT) to support mpGEMM. Our method involves the following key technniques:
-
-1. Given the low precision of weights, we group one-bit weights (e.g., into groups of 4), precompute all possible partial sums, and then use a LUT to store them.
-2. We employ shift and accumulate operations to support scalable bits from 1 to 4.
-3. On a CPU, we utilize tbl/pshuf instructions for fast table lookup.
-4. We reduce the table size from $2^n$ to $2^{n-1}$, incorporating a sign bit to accelerate LUT precomputation.
-
-Our method exhibits several notable characteristics:
-
-1. T-MAC shows a linear scaling ratio of FLOPs and inference latency relative to the number of bits. This contrasts with traditional convert-based methods, which fail to achieve additional speedup when reducing from 4 bits to lower bits.
-2. T-MAC inherently supports bit-wise computation for int1/2/3/4, eliminating the need for dequantization. Furthermore, it accommodates all types of activations (e.g., fp8, fp16, int8) using fast table lookup and add instructions, bypassing the need for poorly supported fused-multiply-add instructions.
-
-## Cite
-If you find this repository useful, please use the following BibTeX entry for citation.
-```
+```bibtex
 @misc{wei2024tmaccpurenaissancetable,
-      title={T-MAC: CPU Renaissance via Table Lookup for Low-Bit LLM Deployment on Edge}, 
+      title={T-MAC: CPU Renaissance via Table Lookup for Low-Bit LLM Deployment on Edge},
       author={Jianyu Wei and Shijie Cao and Ting Cao and Lingxiao Ma and Lei Wang and Yanyong Zhang and Mao Yang},
       year={2024},
       eprint={2407.00088},
       archivePrefix={arXiv},
       primaryClass={cs.DC},
-      url={https://arxiv.org/abs/2407.00088}, 
+      url={https://arxiv.org/abs/2407.00088},
 }
 ```
+
+</details>

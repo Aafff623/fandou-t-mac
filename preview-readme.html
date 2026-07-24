@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>LUT-SA · README 预览壳</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.5.1/github-markdown.min.css" />
+<link rel="stylesheet" href="./preview-readme.css" />
+</head>
+<body>
+  <div class="readme-shell">
+    <header class="readme-toolbar" role="toolbar" aria-label="README 预览工具栏">
+      <div class="title">
+        <strong>LUT-SA</strong>
+        <span class="subtitle">README 预览壳（README Polish · Phase B）</span>
+      </div>
+      <div class="actions">
+        <button type="button" id="reloadBtn" title="重新拉取 README">重新加载</button>
+        <a class="link" href="./README.md" target="_blank" rel="noopener">查看原始 Markdown</a>
+        <a class="link" href="./docs/output/prd/readme-diagrams/readme-diagram-brief.md" target="_blank" rel="noopener">配图 brief</a>
+      </div>
+      <div class="status" id="status" role="status" aria-live="polite">就绪</div>
+    </header>
+
+    <main class="readme-page">
+      <article id="content" class="markdown-body">
+        <div class="boot">正在加载 README.md…</div>
+      </article>
+    </main>
+
+    <footer class="readme-footer">
+      <span>端口取自 <code>port-registry.md</code> · 5189</span>
+      <span>· 必须用 HTTP（<code>python -m http.server 5189</code>）打开，<code>file://</code> 不能 fetch README</span>
+    </footer>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/13.0.3/marked.min.js"></script>
+  <script src="./preview-readme.js"></script>
+</body>
+</html>

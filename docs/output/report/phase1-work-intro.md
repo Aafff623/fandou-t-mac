@@ -1,5 +1,7 @@
 # Phase 1 · 作品介绍
 
+![LUT-SA 系统海报](../../assets/poster/poster-phase1.png)
+
 ![系统架构](../../assets/images/readme/architecture-phase1.png)
 
 ![调用时序](../../assets/images/readme/sequence-phase1.png)

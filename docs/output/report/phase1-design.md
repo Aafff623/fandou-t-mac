@@ -2,6 +2,9 @@
 
 源文件：`assets/images/readme/architecture-phase1.drawio`、`sequence-phase1.drawio`
 PNG：`assets/images/readme/architecture-phase1.png`、`sequence-phase1.png`
+海报：`assets/poster/poster-phase1.png`
+
+![LUT-SA 系统海报](../assets/poster/poster-phase1.png)
 
 ## 图 1 · 系统架构
 

@@ -29,6 +29,7 @@ flowchart TB
 | `assets/images/readme/` | 竞赛/本仓 README 新图 | 新图放这里 |
 | `assets/images/avatar/` `icon/` | 品牌头像/图标 | 新资产 |
 | `assets/video/` | 演示视频 | 新资产 |
+| `assets/poster/` | 海报（初赛可选用，复赛现场常用） | 新资产，prompt 见对话输出 |
 | `assets/theme/ppt/` `script/` | 答辩 PPT、逐字稿（资产目录名，非业务 theme） | 新资产 |
 | `assets/backup/` | zip/旧稿只读备份 | 迁入前登记 |
 | `docs/android.md` 等 | 上游技术文档 | **否** |

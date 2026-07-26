@@ -11,11 +11,11 @@ Status: draft（从临时对话归类，待用户 Review）
 
 | 文档 | 内容 |
 |------|------|
-| [competition-brief.md](../../knowledge/competition-brief.md) | 赛题、赛程、提交、评分 |
-| [tmac-fit.md](../../knowledge/tmac-fit.md) | 论文契合度 |
-| [solution-blueprint.md](../../knowledge/solution-blueprint.md) | 技术栈与分阶段 |
-| [reference-repos.md](../../knowledge/reference-repos.md) | 主仓 + 借鉴仓 |
-| [asset-map.md](../../knowledge/asset-map.md) | 资产路径职责 |
+| [赛事简报](../../knowledge.md#赛事简报) | 赛题、赛程、提交、评分 |
+| [T-MAC 契合度](../../knowledge.md#t-mac-与赛题契合度) | 论文契合度 |
+| [方案蓝图](../../knowledge.md#方案蓝图) | 技术栈与分阶段 |
+| [参考仓库](../../knowledge.md#参考仓库) | 主仓 + 借鉴仓 |
+| [资产定位](../../knowledge.md#资产定位) | 资产路径职责 |
 | ADR-0001 | 路径决策已 Accepted |
 
 ## 备选方向（未采纳为 P0）

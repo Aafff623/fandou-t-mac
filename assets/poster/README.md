@@ -4,11 +4,11 @@
 
 ## 用途
 
-初赛提交可选用（`docs/agents/deliver.md` 中初赛阶段 1/2/3 必选，海报属附加材料）。复赛 / 总决赛现场常用。
+初赛提交可选用（`docs/agents.md` · 交付物 中初赛阶段 1/2/3 必选，海报属附加材料）。复赛 / 总决赛现场常用。
 
 ## 来源
 
-按对话产出的高级 prompt 喂 GPT-2-image 生成。prompt 见 `docs/agents/` 历史会话输出（本仓未入库历史对话）。
+按对话产出的高级 prompt 喂 GPT-2-image 生成。prompt 见 `docs/agents.md` 历史会话输出（本仓未入库历史对话）。
 
 ## 元素覆盖
 

@@ -17,7 +17,7 @@ Scope: 根 `README.md` 章节地图 + 资产清单 + 引用规约。
 | 6 · 移植到 OpenHarmony 路线 | 无（表） | 不需要 | `docs/output/report/phase1-test-report.md` §6 |
 | 7 · 作品介绍（≤800 字） | 含图引用，引用规约同上 | 不需要 | `docs/output/report/phase1-work-intro.md` |
 | 8 · 测试报告雏形 | 引用规约同上 | 不需要 | `docs/output/report/phase1-test-report.md` |
-| 9 · 团队 | 无（表） | 不需要 | `docs/knowledge/team.md` |
+| 9 · 团队 | 无（表） | 不需要 | `docs/knowledge.md`（参赛队伍） |
 | 10 · 仓库内指针 | 无 | 不需要 | 自组 |
 | 折叠段 · 上游 T-MAC 原文 | 沿用原 `<img>` 标签（不动） | 不需要 | `README.md` 历史正文 |
 

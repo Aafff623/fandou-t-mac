@@ -28,26 +28,22 @@
 
 ### Issue tracker
 
-本仓使用 **GitHub Issues**（`gh` CLI）。详见 `docs/agents/issue-tracker.md`。
+本仓使用 **GitHub Issues**（`gh` CLI）。详见 `docs/agents.md` · Issue tracker。
 
 ### Triage labels
 
-使用五类 canonical GitHub label（默认同名）。详见 `docs/agents/triage-labels.md`。
+使用五类 canonical GitHub label（默认同名）。详见 `docs/agents.md` · Triage labels。
 
 ### Domain docs
 
-Single-context：根目录 `CONTEXT.md` + `docs/adr/`。详见 `docs/agents/domain.md`。
+Single-context：根目录 `CONTEXT.md` + `docs/adr/`。详见 `docs/agents.md` · 文档消费规则。
 
 ## 工作流指针
 
 | 文档 | 用途 |
 |------|------|
-| `docs/agents/workflow.md` | Issue → report/prd → 实施 → Review（无 handoff） |
-| `docs/agents/deliver.md` | 交付物与赛程节点 |
-| `docs/agents/archive.md` | 归档规则 |
-| `docs/agents/voice.md` | 输出语气 + 回答格式 |
-| `docs/knowledge/` | 赛题、方案、仓库清单等可迁移知识 |
-| `docs/knowledge/inspiration-sources.md` | Repos + Blogs 灵感总册（后续规划优先吸收） |
+| `docs/agents.md` | 工作流、交付、issue/triage、归档、语气、文档消费、术语 |
+| `docs/knowledge.md` | 赛题、方案、参考仓 + Blog 灵感、队伍、资产、对齐 |
 
 ## Gate
 

@@ -114,7 +114,7 @@
 | 维度 | 入口 |
 |---|---|
 | 项目一句话 / 边界 | [`AGENTS.md`](AGENTS.md) · [`CONTEXT.md`](CONTEXT.md) |
-| 赛题与方案 | [`docs/knowledge/competition-brief.md`](docs/knowledge/competition-brief.md) · [`docs/knowledge/solution-blueprint.md`](docs/knowledge/solution-blueprint.md) |
+| 赛题与方案 | [`docs/knowledge.md`](docs/knowledge.md) |
 | 决策记录 | [`docs/adr/0001-lut-systemability-path.md`](docs/adr/0001-lut-systemability-path.md) |
 | 调研与初赛材料 | [`docs/output/report/`](docs/output/report/) |
 | 任务跟踪 | GitHub Issues（`Aafff623/fandou-t-mac`） |

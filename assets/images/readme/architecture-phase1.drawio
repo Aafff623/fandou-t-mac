@@ -123,7 +123,7 @@
         <mxCell id="bound" value="边界声明 · 不修改 OS 内核；仅在用户态封装 LUT 内核并以 SA 暴露能力" style="text;html=1;align=left;fontSize=10;fontColor=#6B6B6B;" vertex="1" parent="1">
           <mxGeometry x="64" y="604" width="700" height="18" as="geometry"/>
         </mxCell>
-        <mxCell id="src" value="依据 · ADR-0001 · docs/knowledge/solution-blueprint.md" style="text;html=1;align=left;fontSize=9;fontColor=#9A9A9A;" vertex="1" parent="1">
+        <mxCell id="src" value="依据 · ADR-0001 · docs/knowledge.md" style="text;html=1;align=left;fontSize=9;fontColor=#9A9A9A;" vertex="1" parent="1">
           <mxGeometry x="64" y="626" width="700" height="16" as="geometry"/>
         </mxCell>
       </root>

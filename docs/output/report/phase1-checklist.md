@@ -1,6 +1,6 @@
 # Phase 1 清单
 
-> 队长逐项勾选见 **[`phase1-captain-review.md`](phase1-captain-review.md)** · AI 辅助 Review 复制 **[`phase1-captain-prompt.md`](phase1-captain-prompt.md)**
+> 队长逐项勾选见 **[`phase1-captain-review.md`](phase1-captain-review.md)**（pull 后对照提交用）。
 
 | # | 材料 | 文件 |
 |---|------|------|

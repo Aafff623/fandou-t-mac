@@ -1,6 +1,6 @@
 # Phase 1 · 队长 Review 清单
 
-> pull 后对照本页即可。AI 辅助 Review 见 **[`phase1-captain-prompt.md`](phase1-captain-prompt.md)**（复制粘贴即用）。  
+> pull 后对照本页即可。  
 > 截止：**2026-07-26 24:00** · 提交：**黄大年茶思屋** · 报名官网：https://developer.huawei.com/home/C4-AI  
 > 权威口径以官网与组委会通知为准；本页摘自 `docs/knowledge/competition-brief.md`。
 

@@ -212,21 +212,21 @@ flowchart LR
 | # | 标题 | 来源 | URL | 使用建议 |
 |---|------|------|-----|----------|
 | B6 | 鸿蒙开发心迹（10）——端侧大模型技术挑战与解决方案 | CSDN | https://harmonyosdev.csdn.net/6960772f0846ec2c4c5afb91.html | 「加速服务 + 调度策略」总架构 |
-| B7 | HarmonyNext 内核级性能优化与多模态资源调度体系全解 | 掘金 | https://juejin.cn/post/7476030597165727754 | 强化「软硬件异构调度」叙事 |
-| B8 | 鸿蒙 PC AI 原生开发：端侧算力调度与任务接续实战 | 开源鸿蒙跨平台社区 | https://openharmonycrossplatform.csdn.net/6916cb7a0e4c466a32e7cde3.html | 复赛多设备协同扩展 |
-| B9 | 鸿蒙端侧 RAG 系统全链路实现 | 相关技术社区（待补稳定 URL） | — | 测试报告结构与工程指标写法 |
+| B7 | HarmonyNext 内核级性能优化与多模态资源调度体系全解 | 掘金 | https://juejin.cn/post/7476030597165727754 | 强化「软硬件异构调度」叙事；⚠️ AI 农场文，仅作叙事脚手架，数字不可引用 |
+| B8 | 鸿蒙 PC AI 原生开发：端侧算力调度与任务接续实战 | Harmony PC 社区（CSDN） | https://harmonypc.csdn.net/6913125c82fbe0098caa9173.html | SA 封装骨架 + 任务接续；含生产级 TS 代码（原 openharmonycrossplatform 链 404，已更正；数字来自模拟器集群） |
+| B9 | 鸿蒙端侧 RAG 系统全链路实现 | 开源鸿蒙跨平台社区（CSDN） | https://openharmonycrossplatform.csdn.net/69e824a554b52172bc6b5d64.html | **LUT-SA 理想宿主**（换掉其 MindSpore-Lite LLM 模块）；INT8 逐通道量化硬教训；RK3588 单机实测 |
 
 ### 中优先级（视野与官方能力）
 
-| # | 标题 | 来源 | 使用建议 |
-|---|------|------|----------|
-| B10 | 鸿蒙7支持方舟调度引擎 + 性能大模型：高频应用流畅度提升 22% | 搜狐 / PChome（按标题检索） | 前景评估 / 社会价值引用 |
-| B11 | 华为 UCM 技术开源，系统吞吐猛增 22 倍 | 新浪科技等（按标题检索） | 长序列 / 记忆调度讨论，可与 LUT 并列 |
-| B12 | 鸿蒙开发心迹系列·动态稀疏化与 ArkData | OSChina 等（按系列检索） | 扩展「效率」维度，非 P0 实现 |
+| # | 标题 | 来源 / URL | 使用建议（含可信度） |
+|---|------|-----------|----------|
+| B10 | 鸿蒙7支持方舟调度引擎 + 性能大模型：高频应用流畅度提升 22% | 东方财富转 PChome 通稿 https://caifuhao.eastmoney.com/news/20260612155904289837650 · CSDN 开发者复盘 https://harmonyosdev.csdn.net/6a43839010ee7a33f284f318.html | 前景 / 社会价值引用 + 官方「性能大模型」对标物；数字均华为实验室口径，通稿别当技术依据 |
+| B11 | 华为 UCM（推理记忆数据管理器）开源，长序列吞吐 2–22 倍 | 华为官方页 https://e.huawei.com/cn/solutions/storage/ai-storage/ai-inference-acceleration · 智东西 https://zhidx.com/p/496909.html | 记忆调度思想（前缀缓存 / 冷热分级 / 后缀联想）；⚠️ 服务端存储方案，端侧只借思想；官方最新口径「2 倍+」，「22 倍」是最优场景天花板 |
+| B12 | 动态稀疏化 + ArkData（鸿蒙开发心迹 16 / QCon 专家对谈） | CSDN https://harmonyosdev.csdn.net/695ce12f6554f1331aa00f72.html（数字不可信）· InfoQ https://www.infoq.cn/article/atf5mZKSWCXk2LgfdHlr（权威） | 「OS 级资源管理空白」立论 + llama.cpp / 2–4bit 专家背书；数字只引 InfoQ，CSDN 那篇疑似 AI 合成 |
 
 低优先级（背景）：竞赛宣传类报道技术深度有限，仅作赛题背景；赛题权威口径以上文 · 赛事简报与官网为准。
 
-**吸收用法：** 一句话创新点/≤800 字介绍 → 先读 B1、B5 + T-MAC 契合度；架构图/SA 接口 → B2、B3、B5 + 仓 #3–#4；测试报告基线 → B1、B3、仓 T-MAC/llama.cpp；轻量调度 → B4、B6、B7；复赛多设备/NPU → B8、B2、仓 `t-man`/CANN；代码落地 → 仓 #1、#3–#8（仅模式参考，主实现仍抽 T-MAC）。新增灵感往本节追加一行，并在 Issue/报告中引用编号（如「灵感源 B1」「仓 #6」）。待补稳定 URL：B9、B10–B12。
+**吸收用法：** 一句话创新点/≤800 字介绍 → 先读 B1、B5 + T-MAC 契合度；架构图/SA 接口 → B2、B3、B5 + 仓 #3–#4；测试报告基线 → B1、B3、仓 T-MAC/llama.cpp；轻量调度 → B4、B6、B7；复赛多设备/NPU → B8、B2、仓 `t-man`/CANN；代码落地 → 仓 #1、#3–#8（仅模式参考，主实现仍抽 T-MAC）。新增灵感往本节追加一行，并在 Issue/报告中引用编号（如「灵感源 B1」「仓 #6」）。B1–B12 全文已于 2026-07-26 联网抓取并精提炼，「短期跟风 × 长期创新」的逐条吸收结论、可信度分级与「不可引用数字清单」见 [`ohos-port-feasibility.md`](output/report/ohos-port-feasibility.md) · §10。
 
 ## 资产定位
 

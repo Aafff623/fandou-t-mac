@@ -61,7 +61,7 @@ python/t_mac/ops/base.py (OpCodegen)
 | `python/t_mac/platform.py` | 设备预设（`m2` `intel_win` `intel_linux` `android` `jetson` `arm_win`）：target triple、编译选项、`out_dtype`。`get_default_device_kwargs()` 按宿主 OS/架构自动选一个。**目前没有 OpenHarmony/ohos 预设**，复赛适配时需要新增。 |
 | `python/t_mac/weights.py` | 宿主侧权重打包/重排，需与 tensorize 后 kernel 期望的内存布局对齐。 |
 | `CMakeLists.txt` | 消费 `deploy/tuned/` 产物构建 `kernels_static`/`kernels_library`（链接 `tvm_runtime`）；`cmake/TMACConfig.cmake.in` 是装好后给下游用的 package config。 |
-| `3rdparty/llama.cpp`（子模块，`kaleid-liner` fork） | 通过 `-DLLAMA_TMAC=ON` + `TMACConfig.cmake` 集成 T-MAC kernel，是当前的端到端验证路径。 |
+| `3rdparty/llama.cpp`（子模块，`kaleid-liner` fork，branch `master-rebased`） | 通过 `-DGGML_TMAC=ON` + `TMACConfig.cmake` 集成 T-MAC kernel（旧名 `LLAMA_TMAC` 已废弃，`docs/e2e.md` 部分段落陈旧；现行开关见 `tools/run_pipeline.py:183`），是当前的端到端验证路径。 |
 | `t-man/` | 独立的 NPU 扩展方向（`executorch` 子模块），见 `t-man/README.md`，与 LUT/SystemAbility 主线是两条不同的路。 |
 
 竞赛层：`docs/knowledge.md` 是赛题/方案/仓库调研；`docs/agents.md` 是 Agent 工作流与口径；`docs/adr/` 是已拍板决策（如 `0001-lut-systemability-path.md`）；`docs/output/{report,prd}` 是交付物落盘处。
@@ -112,7 +112,7 @@ cmake -DCMAKE_INSTALL_PREFIX=${TMAC_ROOT_DIR}/install ..
 cmake --build . --target install --config Release
 ```
 
-`-DTMAC_STATIC=ON` / `-DTMAC_LIBRARY=ON` 二选一决定链接静态对象还是预编译动态库；不设置任一个时默认整个构建 TVM 子目录（`TMAC_TVM`）。
+`-DTMAC_STATIC=ON` / `-DTMAC_LIBRARY=ON` 二选一决定链接静态对象还是预编译动态库，设任一个都会**强制 `TMAC_TVM=ON`** 连带构建 TVM 子目录；都不设时 `TMAC_TVM` 默认 **OFF**——不建 TVM，仅 install `kernels.cc/.h` + `kcfg.ini` 源码三件套（`CMakeLists.txt:9` 的 `CMAKE_DEPENDENT_OPTION` 语义）。
 
 ### 端到端 llama.cpp 基线对比
 

@@ -39,6 +39,15 @@ def run_adb_command(command, pwd):
     return run_command(new_command, pwd)
 
 
+def run_hdc_command(command, pwd):
+    """OpenHarmony Device Connector (hdc) — mirrors adb for device==ohos."""
+    new_command = ['hdc']
+    if FLAGS.hdc_target:
+        new_command.extend(['-t', FLAGS.hdc_target])
+    new_command = new_command + command
+    return run_command(new_command, pwd)
+
+
 def is_cross_compiling():
     return get_default_device_kwargs()["target"] != get_default_device_kwargs(FLAGS.device)["target"]
 
@@ -178,6 +187,9 @@ def convert_models():
 def cmake_llamacpp():
     build_dir = get_llamacpp_build_dir()
     cmake_prefix_path = os.path.join(ROOT_DIR, "install", "lib", "cmake", "t-mac")
+    ohos_tmac_dir = os.path.join(ROOT_DIR, "ohos", "staging", "t-mac", "lib", "cmake", "t-mac")
+    if FLAGS.device == "ohos" and os.path.isdir(ohos_tmac_dir):
+        cmake_prefix_path = os.path.join(ROOT_DIR, "ohos", "staging", "t-mac")
     command = [
         'cmake', '..',
         f'-DGGML_TMAC={"OFF" if FLAGS.disable_t_mac else "ON"}',
@@ -186,6 +198,8 @@ def cmake_llamacpp():
         '-DGGML_OPENMP=OFF',
         f'-DGGML_TMAC_RECHUNK={"ON" if FLAGS.rechunk else "OFF"}',
     ]
+    if FLAGS.device == "ohos" and os.path.isdir(ohos_tmac_dir):
+        command.append(f'-DTMAC_DIR={ohos_tmac_dir}')
     if FLAGS.device == "android":
         try:
             ndk_home = FLAGS.ndk_home or os.environ["NDK_HOME"]
@@ -195,6 +209,25 @@ def cmake_llamacpp():
         command.append("-DANDROID_ABI=arm64-v8a")
         command.append("-DANDROID_PLATFORM=android-23")
         command.append("-DCMAKE_C_FLAGS=-march=armv8.2a+dotprod+fp16")
+        command.append("-DGGML_METAL=OFF")
+        command.append("-DGGML_ACCELERATE=OFF")
+        command.append("-DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=BOTH")
+        command.append("-DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=BOTH")
+    elif FLAGS.device == "ohos":
+        try:
+            ohos_ndk = FLAGS.ohos_ndk or os.environ.get("OHOS_SDK_NATIVE") or os.environ["OHOS_NDK"]
+        except KeyError:
+            raise KeyError(
+                "Missing OHOS NDK. Specify --ohos-ndk or set OHOS_SDK_NATIVE / OHOS_NDK "
+                "(DevEco: .../sdk/default/openharmony/native)"
+            )
+        toolchain = os.path.join(ohos_ndk, "build", "cmake", "ohos.toolchain.cmake")
+        command.append(f"-DCMAKE_TOOLCHAIN_FILE={toolchain}")
+        command.append("-DOHOS_ARCH=arm64-v8a")
+        command.append("-DOHOS_PLATFORM=OHOS")
+        command.append("-DOHOS_STL=c++_shared")
+        command.append("-DCMAKE_C_FLAGS=-march=armv8.2a+dotprod+fp16")
+        command.append("-DCMAKE_CXX_FLAGS=-march=armv8.2a+dotprod+fp16")
         command.append("-DGGML_METAL=OFF")
         command.append("-DGGML_ACCELERATE=OFF")
         command.append("-DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=BOTH")
@@ -262,6 +295,33 @@ def run_inference():
             '-c', '2048'
         ]
         log_file = run_adb_command(command, build_dir)
+    elif FLAGS.device == "ohos":
+        remote_bin_path = os.path.join(FLAGS.remote_dir, "bin")
+        # hdc: file send <local> <remote>
+        run_hdc_command(['file', 'send', os.path.join(build_dir, "bin"), remote_bin_path], build_dir)
+        remote_main_path = os.path.join(remote_bin_path, "llama-cli").replace("\\", "/")
+        run_hdc_command(['shell', 'chmod', '-R', '755', remote_bin_path], build_dir)
+        remote_out_path = os.path.join(
+            FLAGS.remote_dir,
+            f"{os.path.basename(model_dir)}-{os.path.basename(out_path)}",
+        ).replace("\\", "/")
+        if not FLAGS.skip_push_model:
+            run_hdc_command(['file', 'send', out_path, remote_out_path], build_dir)
+        kcfg_path = os.path.join(ROOT_DIR, "install", "lib", "kcfg.ini")
+        remote_kcfg_path = os.path.join(FLAGS.remote_dir, "kcfg.ini").replace("\\", "/")
+        run_hdc_command(['file', 'send', kcfg_path, remote_kcfg_path], build_dir)
+        command = [
+            'shell',
+            f'TMAC_KCFG_FILE={remote_kcfg_path}',
+            f'{remote_main_path}',
+            '-m', f'{remote_out_path}',
+            '-n', '128',
+            '-t', f'{FLAGS.num_threads}',
+            '-p', f'"{prompt}"',
+            '-ngl', '0',
+            '-c', '2048'
+        ]
+        log_file = run_hdc_command(command, build_dir)
     else:
         command = [
             f'{main_path}',
@@ -318,6 +378,31 @@ def run_llama_bench():
             '-ngl', '0',
         ]
         log_file = run_adb_command(command, build_dir)
+    elif FLAGS.device == "ohos":
+        remote_bin_path = os.path.join(FLAGS.remote_dir, "bin")
+        run_hdc_command(['file', 'send', os.path.join(build_dir, "bin"), remote_bin_path], build_dir)
+        remote_main_path = os.path.join(remote_bin_path, "llama-bench").replace("\\", "/")
+        run_hdc_command(['shell', 'chmod', '-R', '755', remote_bin_path], build_dir)
+        remote_out_path = os.path.join(
+            FLAGS.remote_dir,
+            f"{os.path.basename(model_dir)}-{os.path.basename(out_path)}",
+        ).replace("\\", "/")
+        if not FLAGS.skip_push_model:
+            run_hdc_command(['file', 'send', out_path, remote_out_path], build_dir)
+        kcfg_path = os.path.join(ROOT_DIR, "install", "lib", "kcfg.ini")
+        remote_kcfg_path = os.path.join(FLAGS.remote_dir, "kcfg.ini").replace("\\", "/")
+        run_hdc_command(['file', 'send', kcfg_path, remote_kcfg_path], build_dir)
+        command = [
+            'shell',
+            f'TMAC_KCFG_FILE={remote_kcfg_path}',
+            f'{remote_main_path}',
+            '-m', f'{remote_out_path}',
+            '-n', '128',
+            '-t', f'{FLAGS.num_threads}',
+            '-p', f'{prompt}',
+            '-ngl', '0',
+        ]
+        log_file = run_hdc_command(command, build_dir)
     else:
         command = [
             f'{main_path}',
@@ -388,6 +473,10 @@ def parse_args():
     parser.add_argument("-as", "--adb_serial", type=str, default="", help="ADB serial number. Set this argument if there are multiple adb devices connected.")
     parser.add_argument("-rd", "--remote_dir", type=str, default="/data/local/tmp", help="Remote path to store bin and models.")
     parser.add_argument("-ndk", "--ndk_home", type=str, default="", help="NDK home")
+    parser.add_argument("--ohos-ndk", type=str, default="", dest="ohos_ndk",
+                        help="OpenHarmony native SDK root (contains build/cmake/ohos.toolchain.cmake)")
+    parser.add_argument("--hdc-target", type=str, default="", dest="hdc_target",
+                        help="hdc -t <target> when multiple devices connected")
     parser.add_argument("-spm", "--skip_push_model", action="store_true", help="Suppose the model is unchanged to skip pushing the model file")
 
     parser.add_argument("-rc", "--rechunk", action="store_true", help="Set this argument if you want to use rechunk in computation.")

@@ -155,6 +155,26 @@ _device_kwargs = {
         "out_dtype": "float16",
         "aggregation_dtype": "int32",
     },
+    # OpenHarmony / HarmonyOS NDK (aarch64 + musl). No TVM RPC — use -u / -dt.
+    "ohos": {
+        "target": "llvm -device=arm_cpu -mtriple=aarch64-linux-ohos "
+                  "-mattr=+v8.2a,+fullfp16,+fp-armv8,+neon",
+        "eval_kwargs": {
+            "number": 10,
+            "repeat": 10,
+        },
+        "remote_kwargs": None,
+        "cc": os.environ.get("OHOS_NDK_CC", os.environ.get("TVM_NDK_CC", "clang++")),
+        "cc_opts": [
+            "-O3",
+            "-march=armv8.2a+fp16",
+            "--target=aarch64-linux-ohos",
+            "-mllvm",
+            "-inline-threshold=10000",
+        ],
+        "out_dtype": "float16",
+        "aggregation_dtype": "int32",
+    },
 }
 
 
@@ -180,7 +200,7 @@ def get_default_device_kwargs(device: str = ""):
 def get_arch(device: str = ""):
     if not device:
         return get_system_info()[1]
-    elif device == "android":
+    elif device in ("android", "ohos"):
         return "aarch64"
     else:
         _, arch = next(key for key, value in _platform_device_default_map.items() if value == device)

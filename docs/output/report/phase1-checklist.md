@@ -1,5 +1,7 @@
 # Phase 1 清单
 
+> 队长逐项勾选见 **[`phase1-captain-review.md`](phase1-captain-review.md)** · AI 辅助 Review 复制 **[`phase1-captain-prompt.md`](phase1-captain-prompt.md)**
+
 | # | 材料 | 文件 |
 |---|------|------|
 | 1 | 一句话创意 | `phase1-one-liner.md` |
